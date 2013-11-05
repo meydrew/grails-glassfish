@@ -1,5 +1,10 @@
 package net.kirach.grails.plugin.glassfish
 
+import org.glassfish.embeddable.GlassFishProperties
+import org.glassfish.embeddable.web.Context
+import org.glassfish.embeddable.web.WebContainer
+import org.glassfish.embeddable.web.config.WebContainerConfig
+
 import static grails.build.logging.GrailsConsole.instance as CONSOLE
 
 import grails.util.BuildSettings
@@ -8,9 +13,6 @@ import grails.web.container.EmbeddableServer
 import org.apache.commons.io.FileUtils
 import org.glassfish.embeddable.GlassFish
 import org.glassfish.embeddable.GlassFishRuntime
-import org.glassfish.embeddable.web.Context
-import org.glassfish.embeddable.web.WebContainer
-import org.glassfish.embeddable.web.config.WebContainerConfig
 
 /**
  * Glassfish embeddable server for grails use.
@@ -34,8 +36,11 @@ class GlassfishEmbeddableServer implements EmbeddableServer {
 	 * Constructor.
 	 */
 	GlassfishEmbeddableServer(String basedir, String webXml, String contextPath, ClassLoader classLoader) {
+		GlassFishProperties glassfishProperties = new GlassFishProperties();
+		glassfishProperties.setInstanceRoot("/Users/markus/glassfish4/glassfish/domains/qbase");
+
 		buildSettings = BuildSettingsHolder.getSettings()
-		glassfish = GlassFishRuntime.bootstrap().newGlassFish();
+		glassfish = GlassFishRuntime.bootstrap().newGlassFish(glassfishProperties)
 
 		//just remember this params for using later
 		this.webXml = webXml
@@ -87,7 +92,8 @@ class GlassfishEmbeddableServer implements EmbeddableServer {
 		try {
 			//let's create context - our web application from basedir war from step before and ClassLoader, provided by grails
 			this.context = this.embedded.createContext(new File(this.basedir), this.contextPath, this.classLoader)
-		} finally {
+		}
+		finally {
 			//remove previously copied web.xml after deployment
 			tempWebXml.delete()
 		}

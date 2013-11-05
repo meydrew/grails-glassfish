@@ -1,8 +1,9 @@
 grails.project.work.dir = 'target'
 
 grails.project.dependency.resolution = {
-
-	inherits 'global'
+	inherits('global') {
+		excludes 'hibernate', 'tomcat', 'slf4j-log4j12', 'grails-plugin-log4j'
+	}
 	log 'warn'
 
 	repositories {
@@ -12,9 +13,9 @@ grails.project.dependency.resolution = {
 	}
 
 	dependencies {
-		build 'org.slf4j:slf4j-api:1.6.6'
-		build 'org.slf4j:slf4j-log4j12:1.6.6'
-		build 'org.glassfish.main.extras:glassfish-embedded-all:3.1.2'
+		compile 'org.slf4j:slf4j-api:1.6.6'
+		compile 'org.slf4j:slf4j-log4j12:1.6.6'
+		compile 'org.glassfish.main.extras:glassfish-embedded-all:4.0'
 	}
 
 	plugins {
