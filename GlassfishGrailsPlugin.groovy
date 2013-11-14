@@ -1,5 +1,5 @@
 class GlassfishGrailsPlugin {
-	def version = "0.1.3"
+	def version = "0.1.3.1"
 	def grailsVersion = "2.0 > *"
 	def pluginExcludes = [
 		"grails-app/controllers/**",
