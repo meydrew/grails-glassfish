@@ -36,11 +36,16 @@ class GlassfishEmbeddableServer implements EmbeddableServer {
 	 * Constructor.
 	 */
 	GlassfishEmbeddableServer(String basedir, String webXml, String contextPath, ClassLoader classLoader) {
-		GlassFishProperties glassfishProperties = new GlassFishProperties();
-		glassfishProperties.setInstanceRoot("/Users/markus/glassfish4/glassfish/domains/qbase");
-
 		buildSettings = BuildSettingsHolder.getSettings()
-		glassfish = GlassFishRuntime.bootstrap().newGlassFish(glassfishProperties)
+
+		if (getConfigParam('instanceroot')) {
+			GlassFishProperties glassfishProperties = new GlassFishProperties()
+			glassfishProperties.setInstanceRoot((String) getConfigParam('instanceroot'))
+			glassfish = GlassFishRuntime.bootstrap().newGlassFish(glassfishProperties)
+		}
+		else {
+			glassfish = GlassFishRuntime.bootstrap().newGlassFish()
+		}
 
 		//just remember this params for using later
 		this.webXml = webXml
@@ -149,9 +154,6 @@ class GlassfishEmbeddableServer implements EmbeddableServer {
 
 	/**
 	 * Get config param from "Config.groovy", related to glassfish.
-	 *
-	 * @param name Param name.
-	 * @return Param value.
 	 */
 	private getConfigParam(String name) {
 		buildSettings.config.grails.glassfish[name]
