@@ -2,13 +2,15 @@ grails.project.work.dir = 'target'
 
 grails.project.dependency.resolution = {
 	inherits('global') {
-		excludes 'hibernate', 'tomcat', 'slf4j-log4j12', 'grails-plugin-log4j'
+		excludes 'hibernate', 'tomcat', 'grails-plugin-log4j', 'slf4j-log4j12'
 	}
 	log 'warn'
 
 	repositories {
-		grailsCentral()
+		grailsPlugins()
+		grailsHome()
 		mavenLocal()
+		grailsCentral()
 		mavenCentral()
 	}
 
@@ -19,7 +21,8 @@ grails.project.dependency.resolution = {
 	}
 
 	plugins {
-		build ':release:2.2.1', ':rest-client-builder:1.0.3', {
+		build ':release:3.0.1', ':rest-client-builder:2.0.1', {
+		//build ':release:2.2.1', ':rest-client-builder:1.0.3', {
 			export = false
 		}
 	}

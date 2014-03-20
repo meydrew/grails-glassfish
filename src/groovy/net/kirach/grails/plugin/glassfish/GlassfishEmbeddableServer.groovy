@@ -32,15 +32,17 @@ class GlassfishEmbeddableServer implements EmbeddableServer {
 
 	Context context
 
+	int localHttpPort
+
 	/**
 	 * Constructor.
 	 */
 	GlassfishEmbeddableServer(String basedir, String webXml, String contextPath, ClassLoader classLoader) {
 		buildSettings = BuildSettingsHolder.getSettings()
 
-		if (getConfigParam('instanceroot')) {
+		if (System.getProperty('GF_ROOT') != null) {
 			GlassFishProperties glassfishProperties = new GlassFishProperties()
-			glassfishProperties.setInstanceRoot((String) getConfigParam('instanceroot'))
+			glassfishProperties.setInstanceRoot(System.getProperty('GF_ROOT'))
 			glassfish = GlassFishRuntime.bootstrap().newGlassFish(glassfishProperties)
 		}
 		else {
@@ -63,18 +65,21 @@ class GlassfishEmbeddableServer implements EmbeddableServer {
 	private doStart(String host, int httpPort) {
 		CONSOLE.updateStatus "Starting GlassFish server"
 
+		// sometimes needed by Grails?
+		localHttpPort = httpPort
+
 		//start server
-		glassfish.start();
+		glassfish.start()
 
 		//get web-container
-		embedded = glassfish.getService(WebContainer.class);
+		embedded = glassfish.getService(WebContainer.class)
 
 		//set web-container' config
-		WebContainerConfig config = new WebContainerConfig();
+		WebContainerConfig config = new WebContainerConfig()
 		//here we can configure our web container
 		config.setPort(httpPort)
 		config.setHostNames(host)
-		embedded.setConfiguration(config);
+		embedded.setConfiguration(config)
 
 		//enable comet support, if needed
 		if (getConfigParam("comet")) {
