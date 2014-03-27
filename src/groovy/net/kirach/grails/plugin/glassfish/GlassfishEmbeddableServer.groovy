@@ -1,9 +1,15 @@
 package net.kirach.grails.plugin.glassfish
 
+import com.sun.tools.attach.VirtualMachine
+import grails.util.PluginBuildSettings
+import groovy.transform.CompileStatic
+import org.codehaus.groovy.grails.cli.fork.ExecutionContext
 import org.glassfish.embeddable.GlassFishProperties
 import org.glassfish.embeddable.web.Context
 import org.glassfish.embeddable.web.WebContainer
 import org.glassfish.embeddable.web.config.WebContainerConfig
+
+import java.lang.management.ManagementFactory
 
 import static grails.build.logging.GrailsConsole.instance as CONSOLE
 
@@ -32,6 +38,8 @@ class GlassfishEmbeddableServer implements EmbeddableServer {
 
 	Context context
 
+	File reloadingAgent
+
 	int localHttpPort
 
 	/**
@@ -53,7 +61,8 @@ class GlassfishEmbeddableServer implements EmbeddableServer {
 		this.webXml = webXml
 		this.basedir = basedir
 		this.contextPath = contextPath
-		this.classLoader = classLoader
+
+		this.classLoader = new URLClassLoader([] as URL[], classLoader)
 	}
 
 	/**
@@ -107,6 +116,9 @@ class GlassfishEmbeddableServer implements EmbeddableServer {
 			//remove previously copied web.xml after deployment
 			tempWebXml.delete()
 		}
+
+		//loadAgent()
+		//setupReloading((URLClassLoader) this.classLoader, buildSettings)
 	}
 
 	@Override
@@ -162,5 +174,61 @@ class GlassfishEmbeddableServer implements EmbeddableServer {
 	 */
 	private getConfigParam(String name) {
 		buildSettings.config.grails.glassfish[name]
+	}
+
+	/**
+	 * startup reloading of compiled class files
+	 */
+	protected void setupReloading(URLClassLoader classLoader, BuildSettings buildSettings) {
+		Thread.start {
+			final holders = classLoader.loadClass("grails.util.Holders")
+			while(!holders.getPluginManager()) {
+				sleep(1000)
+			}
+			startProjectWatcher(classLoader, buildSettings)
+		}
+	}
+
+	protected void startProjectWatcher(URLClassLoader classLoader, BuildSettings buildSettings) {
+		try {
+			final projectCompiler = classLoader.loadClass("org.codehaus.groovy.grails.compiler.GrailsProjectCompiler").newInstance(new PluginBuildSettings(buildSettings), classLoader)
+			projectCompiler.configureClasspath()
+			final holders = classLoader.loadClass("grails.util.Holders")
+			final projectWatcher = classLoader.loadClass("org.codehaus.groovy.grails.compiler.GrailsProjectWatcher").newInstance(projectCompiler, holders.getPluginManager())
+			projectWatcher.run()
+		} catch (e) {
+			e.printStackTrace()
+			println "WARNING: There was an error setting up reloading. Changes to classes will not be reflected: ${e.message}"
+		}
+	}
+
+	public static void loadAgent() {
+		String nameOfRunningVM = ManagementFactory.getRuntimeMXBean().getName();
+		int p = nameOfRunningVM.indexOf('@');
+		String pid = nameOfRunningVM.substring(0, p);
+
+		final grailsHome = new File(System.getProperty('grails.home'))
+
+		File agentJar = null
+		if (grailsHome && grailsHome.exists()) {
+			def agentHome = new File(grailsHome, "lib/org.springframework/springloaded/jars")
+			agentJar = agentHome.listFiles().find { File f -> f.name.endsWith(".jar") && !f.name.contains('sources') && !f.name.contains('javadoc')}
+		}
+
+		try {
+			VirtualMachine vm = VirtualMachine.attach(pid);
+			vm.loadAgent(agentJar.canonicalPath, "");
+			vm.detach();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@CompileStatic
+	protected static File findJarFile(Class targetClass) {
+		def absolutePath = targetClass.getResource('/' + targetClass.name.replace(".", "/") + ".class").getPath()
+		final jarPath = absolutePath.substring("file:".length(), absolutePath.lastIndexOf("!"))
+		new File(jarPath)
 	}
 }
